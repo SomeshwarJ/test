@@ -1,0 +1,61 @@
+import com.bazaarvoice.jolt.JsonUtils;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+public class JoltTimestampTest {
+
+    // Function to add current timestamp with format to JSON field
+    public String addTimestampToJsonField(String jsonString, String fieldName, String timestampFormat) {
+        // Simulating Jolt transformation
+        Map<String, Object> inputJson = JsonUtils.jsonToMap(jsonString);
+        Instant now = Instant.now();
+        String formattedTimestamp = now.atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern(timestampFormat));
+        inputJson.put(fieldName, formattedTimestamp);
+        return JsonUtils.toJsonString(inputJson);
+    }
+
+    @Test
+    public void testAddTimestampToJsonFieldWithDifferentFormats() {
+        // Mocking input JSON string
+        String jsonString = "{\"name\": \"John\"}";
+        String fieldName = "timestamp";
+
+        // Define test cases with different timestamp formats
+        Map<String, String> testCases = new HashMap<>();
+        testCases.put("yyyy-MM-dd HH:mm:ss", "2024-03-21 12:34:56");
+        testCases.put("yyyy/MM/dd HH:mm:ss", "2024/03/21 12:34:56");
+        testCases.put("dd/MM/yyyy HH:mm:ss", "21/03/2024 12:34:56");
+        // Add more test cases as needed
+
+        // Iterate over test cases
+        for (Map.Entry<String, String> testCase : testCases.entrySet()) {
+            String timestampFormat = testCase.getKey();
+            String expectedTimestamp = testCase.getValue();
+
+            // Creating expected output JSON string
+            Map<String, Object> expectedJson = new HashMap<>();
+            expectedJson.put("name", "John");
+            expectedJson.put(fieldName, expectedTimestamp);
+            String expectedJsonString = JsonUtils.toJsonString(expectedJson);
+
+            // Mocking the current timestamp
+            JoltTimestampTest joltTimestampTest = Mockito.spy(new JoltTimestampTest());
+            Instant fixedInstant = Instant.parse("2024-03-21T12:34:56Z"); // Mock a fixed timestamp
+            Mockito.doReturn(fixedInstant).when(joltTimestampTest).getCurrentTimestamp();
+
+            // Testing the function
+            String resultJsonString = joltTimestampTest.addTimestampToJsonField(jsonString, fieldName, timestampFormat);
+
+            // Asserting the result
+            assertEquals(expectedJsonString, resultJsonString);
+        }
+    }
+}
